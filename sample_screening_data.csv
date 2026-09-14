@@ -1,0 +1,11 @@
+q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,label
+0,0,1,0,1,0,0,1,0,0,Low preliminary indication
+1,0,1,1,1,0,1,1,0,1,Moderate preliminary indication
+2,2,2,2,2,1,2,2,2,2,Higher preliminary indication
+3,2,3,2,3,2,3,2,3,3,Higher preliminary indication
+0,1,0,1,0,1,0,0,1,0,Low preliminary indication
+1,2,1,2,1,2,1,1,2,1,Moderate preliminary indication
+2,1,2,3,2,2,2,3,1,2,Higher preliminary indication
+0,0,0,0,0,0,1,0,0,0,Low preliminary indication
+1,1,2,1,2,1,1,2,1,2,Moderate preliminary indication
+3,3,2,3,3,3,2,3,3,2,Higher preliminary indication

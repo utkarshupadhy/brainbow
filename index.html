@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brainbow | Early Screening Aid</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">BRAINBOW</p>
+        <h1>Early Autism Screening Aid</h1>
+        <p class="subtitle">A questionnaire-based machine-learning prototype for preliminary awareness.</p>
+      </div>
+      <span class="badge">Educational prototype</span>
+    </header>
+
+    <section class="notice">
+      <strong>Important:</strong> This tool does not diagnose autism. It only summarizes selected behavioral indicators. For concerns, consult a qualified healthcare professional.
+    </section>
+
+    <section class="card">
+      <div class="section-heading">
+        <div>
+          <h2>Behavioral questionnaire</h2>
+          <p>Choose how frequently each observation occurs.</p>
+        </div>
+        <span id="progress">0 / {{ questions|length }}</span>
+      </div>
+
+      <form id="screeningForm">
+        {% for q in questions %}
+        <div class="question">
+          <label for="{{ q.id }}">{{ loop.index }}. {{ q.text }}</label>
+          <select id="{{ q.id }}" name="{{ q.id }}" required>
+            <option value="">Select response</option>
+            <option value="0">Never / no concern</option>
+            <option value="1">Sometimes</option>
+            <option value="2">Often</option>
+            <option value="3">Very often</option>
+          </select>
+        </div>
+        {% endfor %}
+        <button type="submit">Analyze responses</button>
+      </form>
+    </section>
+
+    <section id="result" class="card result hidden" aria-live="polite">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">SCREENING SUMMARY</p>
+          <h2 id="category"></h2>
+        </div>
+        <div class="score" id="percentage"></div>
+      </div>
+      <div class="meter"><div id="meterFill"></div></div>
+      <p id="guidance"></p>
+      <p class="disclaimer" id="disclaimer"></p>
+      <button class="secondary" id="resetBtn" type="button">Start another screening</button>
+    </section>
+
+    <section class="card">
+      <div class="section-heading">
+        <div>
+          <h2>Recent screening records</h2>
+          <p>Stored locally in SQLite for demonstration.</p>
+        </div>
+        <button class="secondary small" id="refreshHistory" type="button">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Score</th><th>Percentage</th><th>Category</th></tr></thead>
+          <tbody id="historyBody"><tr><td colspan="4">No records yet.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <script>
+    const form = document.getElementById("screeningForm");
+    const result = document.getElementById("result");
+    const progress = document.getElementById("progress");
+    const selects = [...form.querySelectorAll("select")];
+
+    function updateProgress() {
+      const completed = selects.filter(s => s.value !== "").length;
+      progress.textContent = `${completed} / ${selects.length}`;
+    }
+    selects.forEach(s => s.addEventListener("change", updateProgress));
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const answers = Object.fromEntries(new FormData(form).entries());
+      const response = await fetch("/api/predict", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({answers})
+      });
+      const data = await response.json();
+      document.getElementById("category").textContent = data.category;
+      document.getElementById("percentage").textContent = `${data.percentage}%`;
+      document.getElementById("guidance").textContent = data.guidance;
+      document.getElementById("disclaimer").textContent = data.disclaimer;
+      document.getElementById("meterFill").style.width = `${data.percentage}%`;
+      result.classList.remove("hidden");
+      result.scrollIntoView({behavior: "smooth", block: "start"});
+      loadHistory();
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      form.reset();
+      result.classList.add("hidden");
+      updateProgress();
+      window.scrollTo({top: 0, behavior: "smooth"});
+    });
+
+    async function loadHistory() {
+      const response = await fetch("/api/history");
+      const rows = await response.json();
+      const body = document.getElementById("historyBody");
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="4">No records yet.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map(row => `
+        <tr>
+          <td>${row.created_at.replace("T", " ")}</td>
+          <td>${row.score}/30</td>
+          <td>${row.percentage}%</td>
+          <td>${row.category}</td>
+        </tr>
+      `).join("");
+    }
+    document.getElementById("refreshHistory").addEventListener("click", loadHistory);
+    loadHistory();
+  </script>
+</body>
+</html>
